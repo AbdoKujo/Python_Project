@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+
+{% block title %}Bad Request{% endblock %}
+
+{% block content %}
+<div class="error-container">
+  <h1>400 - Bad Request</h1>
+  <p>The server could not understand the request due to invalid syntax.</p>
+  <p>{{ error }}</p>
+  <p><a href="/">Return to Home</a></p>
+</div>
+{% endblock %}
+

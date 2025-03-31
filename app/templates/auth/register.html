@@ -1,0 +1,92 @@
+{% extends "layout.html" %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <h1>Register</h1>
+    
+    <div id="error-message" class="error-message hidden"></div>
+    
+    <form id="register-form" action="{{ url_for('auth.register') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required>
+            <small>Password must be at least 8 characters and contain letters and numbers</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="confirm-password">Confirm Password</label>
+            <input type="password" id="confirm-password" name="confirm-password" required>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit">Register</button>
+        </div>
+    </form>
+    
+    <div class="auth-links">
+        <p>Already have an account? <a href="/auth/login">Login</a></p>
+    </div>
+</div>
+
+<script>
+    document.getElementById('register-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        
+        // Validate passwords match
+        if (password !== confirmPassword) {
+            const errorMessage = document.getElementById('error-message');
+            errorMessage.textContent = 'Passwords do not match';
+            errorMessage.classList.remove('hidden');
+            return;
+        }
+        
+        try {
+            const response = await fetch("{{ url_for('auth.register') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ username, email, password })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Redirect to login page
+                window.location.href = '/auth/login';
+            } else {
+                // Show error message
+                const errorMessage = document.getElementById('error-message');
+                errorMessage.textContent = data.error || 'Registration failed';
+                errorMessage.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Registration error:', error);
+            const errorMessage = document.getElementById('error-message');
+            errorMessage.textContent = 'An error occurred. Please try again.';
+            errorMessage.classList.remove('hidden');
+        }
+    });
+</script>
+{% endblock %}
+

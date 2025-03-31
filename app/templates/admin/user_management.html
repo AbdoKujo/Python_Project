@@ -1,0 +1,485 @@
+{% extends "layout.html" %}
+
+{% block title %}User Management{% endblock %}
+
+{% block content %}
+<div class="user-management">
+    <h1>User Management</h1>
+    
+    <div class="action-bar">
+        <button id="create-user-btn" class="action-button">Create User</button>
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="Search users...">
+            <button id="search-btn">Search</button>
+        </div>
+    </div>
+    
+    <div id="user-list" class="user-list">
+        <p>Loading users...</p>
+    </div>
+    
+    <div id="pagination" class="pagination">
+        <button id="prev-page" class="pagination-button" disabled>Previous</button>
+        <span id="page-info">Page 1</span>
+        <button id="next-page" class="pagination-button">Next</button>
+    </div>
+    
+    <!-- Create User Modal -->
+    <div id="create-user-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create User</h2>
+                <button id="close-modal" class="close-button">&times;</button>
+            </div>
+            
+            <div id="modal-error" class="error-message hidden"></div>
+            
+            <form id="create-user-form">
+                <div class="form-group">
+                    <label for="new-username">Username</label>
+                    <input type="text" id="new-username" name="new-username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="new-email">Email</label>
+                    <input type="email" id="new-email" name="new-email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="new-password">Password</label>
+                    <input type="password" id="new-password" name="new-password" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="new-role">Role</label>
+                    <select id="new-role" name="new-role" required>
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit">Create</button>
+                    <button type="button" id="cancel-create">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Edit User Modal -->
+    <div id="edit-user-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit User</h2>
+                <button id="close-edit-modal" class="close-button">&times;</button>
+            </div>
+            
+            <div id="edit-modal-error" class="error-message hidden"></div>
+            
+            <form id="edit-user-form">
+                <input type="hidden" id="edit-user-id">
+                
+                <div class="form-group">
+                    <label for="edit-username">Username</label>
+                    <input type="text" id="edit-username" name="edit-username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-email">Email</label>
+                    <input type="email" id="edit-email" name="edit-email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-role">Role</label>
+                    <select id="edit-role" name="edit-role" required>
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-status">Status</label>
+                    <select id="edit-status" name="edit-status" required>
+                        <option value="true">Active</option>
+                        <option value="false">Inactive</option>
+                    </select>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit">Update</button>
+                    <button type="button" id="cancel-edit">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const accessToken = localStorage.getItem('access_token');
+        
+        if (!accessToken) {
+            window.location.href = '/auth/login';
+            return;
+        }
+        
+        // Modal handling
+        const createUserBtn = document.getElementById('create-user-btn');
+        const createUserModal = document.getElementById('create-user-modal');
+        const closeModal = document.getElementById('close-modal');
+        const cancelCreate = document.getElementById('cancel-create');
+        
+        createUserBtn.addEventListener('click', function() {
+            createUserModal.classList.remove('hidden');
+        });
+        
+        closeModal.addEventListener('click', function() {
+            createUserModal.classList.add('hidden');
+        });
+        
+        cancelCreate.addEventListener('click', function() {
+            createUserModal.classList.add('hidden');
+        });
+        
+        const editUserModal = document.getElementById('edit-user-modal');
+        const closeEditModal = document.getElementById('close-edit-modal');
+        const cancelEdit = document.getElementById('cancel-edit');
+        
+        closeEditModal.addEventListener('click', function() {
+            editUserModal.classList.add('hidden');
+        });
+        
+        cancelEdit.addEventListener('click', function() {
+            editUserModal.classList.add('hidden');
+        });
+        
+        // Load users
+        let currentPage = 1;
+        
+        function loadUsers(page) {
+            fetch(`/admin/users?page=${page}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to load users');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const userList = document.getElementById('user-list');
+                
+                if (data.users.length === 0) {
+                    userList.innerHTML = '<p>No users found</p>';
+                } else {
+                    let html = '<table><thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+                    
+                    data.users.forEach(user => {
+                        html += `<tr>
+                            <td>${user.id}</td>
+                            <td>${user.username}</td>
+                            <td>${user.email}</td>
+                            <td>${user.role}</td>
+                            <td>${user.is_active ? 'Active' : 'Inactive'}</td>
+                            <td>
+                                <button class="edit-user-btn" data-id="${user.id}">Edit</button>
+                                ${user.is_active ? 
+                                    `<button class="deactivate-user-btn" data-id="${user.id}">Deactivate</button>` : 
+                                    `<button class="activate-user-btn" data-id="${user.id}">Activate</button>`
+                                }
+                                <button class="delete-user-btn" data-id="${user.id}">Delete</button>
+                            </td>
+                        </tr>`;
+                    });
+                    
+                    html += '</tbody></table>';
+                    userList.innerHTML = html;
+                    
+                    // Add event listeners to action buttons
+                    document.querySelectorAll('.edit-user-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const userId = this.getAttribute('data-id');
+                            editUser(userId);
+                        });
+                    });
+                    
+                    document.querySelectorAll('.deactivate-user-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const userId = this.getAttribute('data-id');
+                            deactivateUser(userId);
+                        });
+                    });
+                    
+                    document.querySelectorAll('.activate-user-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const userId = this.getAttribute('data-id');
+                            activateUser(userId);
+                        });
+                    });
+                    
+                    document.querySelectorAll('.delete-user-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const userId = this.getAttribute('data-id');
+                            deleteUser(userId);
+                        });
+                    });
+                }
+                
+                // Update pagination
+                document.getElementById('page-info').textContent = `Page ${page}`;
+                document.getElementById('prev-page').disabled = page <= 1;
+                document.getElementById('next-page').disabled = data.users.length < data.per_page;
+                
+                currentPage = page;
+            })
+            .catch(error => {
+                console.error('Error loading users:', error);
+                document.getElementById('user-list').innerHTML = '<p>Error loading users</p>';
+            });
+        }
+        
+        // Edit user
+        function editUser(userId) {
+            fetch(`/admin/users/${userId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    // Fill edit form
+                    document.getElementById('edit-user-id').value = data.id;
+                    document.getElementById('edit-username').value = data.username;
+                    document.getElementById('edit-email').value = data.email;
+                    document.getElementById('edit-role').value = data.role;
+                    document.getElementById('edit-status').value = data.is_active.toString();
+                    
+                    // Show modal
+                    editUserModal.classList.remove('hidden');
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching user:', error);
+                alert('An error occurred. Please try again.');
+            });
+        }
+        
+        // User actions
+        function deactivateUser(userId) {
+            if (confirm('Are you sure you want to deactivate this user?')) {
+                fetch(`/admin/users/${userId}/deactivate`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Failed to deactivate user');
+                        }).catch(e => {
+                            // If JSON parsing fails, use the status text
+                            throw new Error(`Failed to deactivate user: ${response.statusText}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        loadUsers(currentPage);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deactivating user:', error);
+                    alert(error.message || 'An error occurred. Please try again.');
+                });
+            }
+        }
+        
+        function activateUser(userId) {
+            fetch(`/admin/users/${userId}/activate`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'Failed to activate user');
+                    }).catch(e => {
+                        // If JSON parsing fails, use the status text
+                        throw new Error(`Failed to activate user: ${response.statusText}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    loadUsers(currentPage);
+                }
+            })
+            .catch(error => {
+                console.error('Error activating user:', error);
+                alert(error.message || 'An error occurred. Please try again.');
+            });
+        }
+        
+        function deleteUser(userId) {
+            if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+                fetch(`/admin/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Failed to delete user');
+                        }).catch(e => {
+                            // If JSON parsing fails, use the status text
+                            throw new Error(`Failed to delete user: ${response.statusText}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        loadUsers(currentPage);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting user:', error);
+                    alert(error.message || 'An error occurred. Please try again.');
+                });
+            }
+        }
+        
+        // Form submissions
+        document.getElementById('create-user-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('new-username').value;
+            const email = document.getElementById('new-email').value;
+            const password = document.getElementById('new-password').value;
+            const role = document.getElementById('new-role').value;
+            
+            fetch('/admin/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
+                },
+                body: JSON.stringify({ username, email, password, role })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    const modalError = document.getElementById('modal-error');
+                    modalError.textContent = data.error;
+                    modalError.classList.remove('hidden');
+                } else {
+                    // Close modal and reload users
+                    createUserModal.classList.add('hidden');
+                    loadUsers(currentPage);
+                    
+                    // Reset form
+                    document.getElementById('create-user-form').reset();
+                    document.getElementById('modal-error').classList.add('hidden');
+                }
+            })
+            .catch(error => {
+                console.error('Error creating user:', error);
+                const modalError = document.getElementById('modal-error');
+                modalError.textContent = 'An error occurred. Please try again.';
+                modalError.classList.remove('hidden');
+            });
+        });
+        
+        document.getElementById('edit-user-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const userId = document.getElementById('edit-user-id').value;
+            const username = document.getElementById('edit-username').value;
+            const email = document.getElementById('edit-email').value;
+            const role = document.getElementById('edit-role').value;
+            const isActive = document.getElementById('edit-status').value === 'true';
+            
+            fetch(`/admin/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
+                },
+                body: JSON.stringify({ username, email, role, is_active: isActive })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    const modalError = document.getElementById('edit-modal-error');
+                    modalError.textContent = data.error;
+                    modalError.classList.remove('hidden');
+                } else {
+                    // Close modal and reload users
+                    editUserModal.classList.add('hidden');
+                    loadUsers(currentPage);
+                    
+                    // Reset form error
+                    document.getElementById('edit-modal-error').classList.add('hidden');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating user:', error);
+                const modalError = document.getElementById('edit-modal-error');
+                modalError.textContent = 'An error occurred. Please try again.';
+                modalError.classList.remove('hidden');
+            });
+        });
+        
+        // Search functionality
+        document.getElementById('search-btn').addEventListener('click', function() {
+            const searchTerm = document.getElementById('search-input').value.trim();
+            if (searchTerm) {
+                // In a real application, you would implement a search endpoint
+                // For this demo, we'll just reload the first page
+                loadUsers(1);
+            }
+        });
+        
+        // Pagination event listeners
+        document.getElementById('prev-page').addEventListener('click', function() {
+            if (currentPage > 1) {
+                loadUsers(currentPage - 1);
+            }
+        });
+        
+        document.getElementById('next-page').addEventListener('click', function() {
+            loadUsers(currentPage + 1);
+        });
+        
+        // Initial load
+        loadUsers(1);
+    });
+</script>
+{% endblock %}
+

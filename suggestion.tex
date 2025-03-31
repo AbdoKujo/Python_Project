@@ -1,0 +1,869 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{enumitem}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+
+\title{Flask MVC Template with MySQL - Suggestions for Extension}
+\author{Flask MVC Template Documentation}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+
+This document provides suggestions for extending the Flask MVC Template with MySQL. The template provides a solid foundation for building web applications with Flask following the Model-View-Controller (MVC) architecture, but there are many ways to enhance and extend it to meet specific requirements.
+
+\section{Frontend Enhancements}
+
+\subsection{Adding a CSS Framework}
+
+The current template includes minimal styling. Adding a CSS framework like Bootstrap, Tailwind CSS, or Bulma can significantly improve the user interface.
+
+\begin{lstlisting}[language=html, caption=Adding Bootstrap to layout.html]
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Flask MVC App{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Flask MVC App</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="/user/profile">Profile</a>
+                        </li>
+                        {% if current_user.is_admin %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="/admin/dashboard">Admin Dashboard</a>
+                            </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="/auth/logout">Logout</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="/auth/login">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/auth/register">Register</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="container mt-4">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <footer class="bg-dark text-white text-center py-3 mt-5">
+        <p>&copy; 2023 Flask MVC App</p>
+    </footer>
+</body>
+</html>
+\end{lstlisting}
+
+\subsection{Implementing a JavaScript Framework}
+
+For more interactive user interfaces, consider implementing a JavaScript framework like React, Vue.js, or Alpine.js. This can be done by creating a separate frontend application or by integrating the framework into the existing templates.
+
+\begin{lstlisting}[language=html, caption=Adding Vue.js to layout.html]
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Flask MVC App{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Vue.js -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.2.36/dist/vue.global.min.js"></script>
+    
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Vue.js app container -->
+        {% block content %}{% endblock %}
+    </div>
+    
+    <script>
+        // Initialize Vue app
+        const app = Vue.createApp({
+            // Vue app configuration
+        });
+        
+        // Mount Vue app
+        app.mount('#app');
+    </script>
+</body>
+</html>
+\end{lstlisting}
+
+\section{API Enhancements}
+
+\subsection{Implementing API Versioning}
+
+As your API evolves, it's important to implement versioning to ensure backward compatibility. This can be done by adding a version prefix to the API endpoints.
+
+\begin{lstlisting}[language=python, caption=API Versioning in app/\_\_init\_\_.py]
+def create_app(config_name='default'):
+    # ...
+    
+    # Register blueprints with version prefix
+    from app.controllers.auth_controller import auth_bp
+    from app.controllers.user_controller import user_bp
+    from app.controllers.admin_controller import admin_bp
+    from app.controllers.activity_controller import activity_bp
+    
+    app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
+    app.register_blueprint(user_bp, url_prefix='/api/v1/user')
+    app.register_blueprint(admin_bp, url_prefix='/api/v1/admin')
+    app.register_blueprint(activity_bp, url_prefix='/api/v1/activity')
+    
+    # ...
+\end{lstlisting}
+
+\subsection{Adding API Documentation}
+
+Adding API documentation makes it easier for developers to understand and use your API. Consider using tools like Swagger/OpenAPI or Flask-RESTPlus to generate interactive API documentation.
+
+\begin{lstlisting}[language=bash, caption=Installing Flask-RESTPlus]
+pip install flask-restplus
+\end{lstlisting}
+
+\begin{lstlisting}[language=python, caption=Implementing Flask-RESTPlus]
+from flask import Flask
+from flask_restplus import Api, Resource, fields
+
+app = Flask(__name__)
+api = Api(app, version='1.0', title='Flask MVC API',
+    description='A Flask MVC API with Swagger documentation')
+
+# Define namespaces
+ns_auth = api.namespace('auth', description='Authentication operations')
+ns_user = api.namespace('user', description='User operations')
+ns_admin = api.namespace('admin', description='Admin operations')
+
+# Define models
+user_model = api.model('User', {
+    'id': fields.Integer(readonly=True, description='User ID'),
+    'username': fields.String(required=True, description='Username'),
+    'email': fields.String(required=True, description='Email address'),
+    'role': fields.String(description='User role')
+})
+
+# Define endpoints
+@ns_auth.route('/login')
+class Login(Resource):
+    @api.doc('login_user')
+    @api.expect(api.model('LoginCredentials', {
+        'username': fields.String(required=True, description='Username or email'),
+        'password': fields.String(required=True, description='Password')
+    }))
+    @api.response(200, 'Success', api.model('LoginResponse', {
+        'access_token': fields.String(description='JWT access token'),
+        'refresh_token': fields.String(description='JWT refresh token'),
+        'user': fields.Nested(user_model)
+    }))
+    @api.response(401, 'Invalid credentials')
+    def post(self):
+        """Login a user"""
+        # Implementation
+        pass
+\end{lstlisting}
+
+\section{Database Enhancements}
+
+\subsection{Implementing Database Sharding}
+
+For applications with large amounts of data, consider implementing database sharding to distribute the data across multiple databases.
+
+\begin{lstlisting}[language=python, caption=Database Sharding Example]
+class ShardedDatabase:
+    """Sharded database manager"""
+    
+    def __init__(self, shard_count=3):
+        self.shard_count = shard_count
+        self.shards = []
+        
+        # Initialize shards
+        for i in range(shard_count):
+            shard_uri = f"mysql://username:password@localhost/flask_app_shard_{i}"
+            self.shards.append(create_engine(shard_uri))
+    
+    def get_shard(self, key):
+        """Get shard for a specific key"""
+        # Simple hash-based sharding
+        shard_index = hash(key) % self.shard_count
+        return self.shards[shard_index]
+    
+    def execute_on_all_shards(self, query, params=None):
+        """Execute a query on all shards"""
+        results = []
+        for shard in self.shards:
+            with shard.connect() as conn:
+                result = conn.execute(query, params or {})
+                results.append(result)
+        return results
+\end{lstlisting}
+
+\subsection{Implementing Database Replication}
+
+For improved read performance and high availability, consider implementing database replication.
+
+\begin{lstlisting}[language=python, caption=Database Replication Example]
+class ReplicatedDatabase:
+    """Replicated database manager"""
+    
+    def __init__(self, master_uri, replica_uris):
+        self.master = create_engine(master_uri)
+        self.replicas = [create_engine(uri) for uri in replica_uris]
+        self.replica_index = 0
+    
+    def get_master(self):
+        """Get master database connection"""
+        return self.master
+    
+    def get_replica(self):
+        """Get replica database connection using round-robin"""
+        replica = self.replicas[self.replica_index]
+        self.replica_index = (self.replica_index + 1) % len(self.replicas)
+        return replica
+    
+    def execute_write(self, query, params=None):
+        """Execute a write query on the master"""
+        with self.master.connect() as conn:
+            return conn.execute(query, params or {})
+    
+    def execute_read(self, query, params=None):
+        """Execute a read query on a replica"""
+        with self.get_replica().connect() as conn:
+            return conn.execute(query, params or {})
+\end{lstlisting}
+
+\section{Authentication Enhancements}
+
+\subsection{Implementing OAuth2 Authentication}
+
+For applications that need to integrate with third-party services, consider implementing OAuth2 authentication.
+
+\begin{lstlisting}[language=bash, caption=Installing Flask-OAuthlib]
+pip install Flask-OAuthlib
+\end{lstlisting}
+
+\begin{lstlisting}[language=python, caption=Implementing OAuth2 with Google]
+from flask import Flask, redirect, url_for, session
+from flask_oauthlib.client import OAuth
+
+app = Flask(__name__)
+app.secret_key = 'your-secret-key'
+oauth = OAuth(app)
+
+google = oauth.remote_app(
+    'google',
+    consumer_key='your-google-client-id',
+    consumer_secret='your-google-client-secret',
+    request_token_params={
+        'scope': 'email'
+    },
+    base_url='https://www.googleapis.com/oauth2/v1/',
+    request_token_url=None,
+    access_token_method='POST',
+    access_token_url='https://accounts.google.com/o/oauth2/token',
+    authorize_url='https://accounts.google.com/o/oauth2/auth',
+)
+
+@app.route('/login/google')
+def login_google():
+    return google.authorize(callback=url_for('authorized', _external=True))
+
+@app.route('/login/authorized')
+def authorized():
+    resp = google.authorized_response()
+    if resp is None:
+        return 'Access denied: reason=%s error=%s' % (
+            request.args['error_reason'],
+            request.args['error_description']
+        )
+    session['google_token'] = (resp['access_token'], '')
+    me = google.get('userinfo')
+    return 'Logged in as: ' + me.data['email']
+
+@google.tokengetter
+def get_google_oauth_token():
+    return session.get('google_token')
+\end{lstlisting}
+
+\subsection{Implementing Two-Factor Authentication}
+
+For enhanced security, consider implementing two-factor authentication (2FA).
+
+\begin{lstlisting}[language=bash, caption=Installing PyOTP]
+pip install pyotp
+\end{lstlisting}
+
+\begin{lstlisting}[language=python, caption=Implementing 2FA with PyOTP]
+import pyotp
+from flask import Flask, request, jsonify
+from app.models.user import User
+
+app = Flask(__name__)
+
+@app.route('/setup-2fa', methods=['POST'])
+def setup_2fa():
+    user_id = request.json.get('user_id')
+    user = User.query.get(user_id)
+    
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    # Generate a secret key for the user
+    secret = pyotp.random_base32()
+    user.totp_secret = secret
+    db.session.commit()
+    
+    # Generate a QR code URL for the user to scan
+    totp = pyotp.TOTP(secret)
+    provisioning_url = totp.provisioning_uri(user.email, issuer_name="Flask MVC App")
+    
+    return jsonify({
+        'secret': secret,
+        'provisioning_url': provisioning_url
+    })
+
+@app.route('/verify-2fa', methods=['POST'])
+def verify_2fa():
+    user_id = request.json.get('user_id')
+    token = request.json.get('token')
+    
+    user = User.query.get(user_id)
+    
+    if not user or not user.totp_secret:
+        return jsonify({'error': 'User not found or 2FA not set up'}), 404
+    
+    totp = pyotp.TOTP(user.totp_secret)
+    
+    if totp.verify(token):
+        return jsonify({'message': '2FA verification successful'})
+    else:
+        return jsonify({'error': 'Invalid 2FA token'}), 401
+\end{lstlisting}
+
+\section{Caching Enhancements}
+
+\subsection{Implementing Redis Caching}
+
+For improved caching performance, consider implementing Redis caching.
+
+\begin{lstlisting}[language=bash, caption=Installing Redis Dependencies]
+pip install redis flask-caching
+\end{lstlisting}
+
+\begin{lstlisting}[language=python, caption=Implementing Redis Caching]
+from flask import Flask
+from flask_caching import Cache
+
+app = Flask(__name__)
+app.config['CACHE_TYPE'] = 'redis'
+app.config['CACHE_REDIS_URL'] = 'redis://localhost:6379/0'
+cache = Cache(app)
+
+@app.route('/user/<int:user_id>')
+@cache.cached(timeout=60)
+def get_user(user_id):
+    # This function will be cached for 60 seconds
+    user = User.query.get(user_id)
+    return jsonify(user.to_dict())
+
+@app.route('/users')
+def get_users():
+    # Cache the result manually
+    cache_key = 'all_users'
+    users = cache.get(cache_key)
+    
+    if users is None:
+        users = [user.to_dict() for user in User.query.all()]
+        cache.set(cache_key, users, timeout=60)
+    
+    return jsonify(users)
+\end{lstlisting}
+
+\subsection{Implementing Cache Invalidation}
+
+For applications with frequently changing data, implement cache invalidation to ensure data consistency.
+
+\begin{lstlisting}[language=python, caption=Implementing Cache Invalidation]
+from flask import Flask
+from flask_caching import Cache
+
+app = Flask(__name__)
+app.config['CACHE_TYPE'] = 'redis'
+app.config['CACHE_REDIS_URL'] = 'redis://localhost:6379/0'
+cache = Cache(app)
+
+def invalidate_user_cache(user_id):
+    """Invalidate cache for a specific user"""
+    cache.delete(f'user_{user_id}')
+    cache.delete('all_users')
+
+@app.route('/user/<int:user_id>')
+@cache.cached(timeout=60, key_prefix='user_')
+def get_user(user_id):
+    user = User.query.get(user_id)
+    return jsonify(user.to_dict())
+
+@app.route('/user/<int:user_id>', methods=['PUT'])
+def update_user(user_id):
+    user = User.query.get(user_id)
+    # Update user
+    db.session.commit()
+    
+    # Invalidate cache
+    invalidate_user_cache(user_id)
+    
+    return jsonify(user.to_dict())
+\end{lstlisting}
+
+\section{Logging Enhancements}
+
+\subsection{Implementing Structured Logging}
+
+For improved log analysis, consider implementing structured logging.
+
+\begin{lstlisting}[language=bash, caption=Installing Structured Logging Dependencies]
+pip install structlog
+\end{lstlisting}
+
+\begin{lstlisting}[language=python, caption=Implementing Structured Logging]
+import structlog
+import logging
+from flask import Flask, request, g
+
+app = Flask(__name__)
+
+# Configure structlog
+structlog.configure(
+    processors=[
+        structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.processors.UnicodeDecoder(),
+        structlog.processors.JSONRenderer()
+    ],
+    context_class=dict,
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    wrapper_class=structlog.stdlib.BoundLogger,
+    cache_logger_on_first_use=True,
+)
+
+# Create a logger
+logger = structlog.get_logger()
+
+@app.before_request
+def before_request():
+    # Add request information to the log context
+    g.log = logger.bind(
+        request_id=request.headers.get('X-Request-ID', ''),
+        remote_addr=request.remote_addr,
+        method=request.method,
+        path=request.path
+    )
+
+@app.after_request
+def after_request(response):
+    # Log the response status
+    g.log = g.log.bind(status=response.status_code)
+    g.log.info('request_finished')
+    return response
+
+@app.errorhandler(Exception)
+def handle_exception(error):
+    # Log the exception
+    g.log.error('unhandled_exception', exc_info=error)
+    return 'Internal Server Error', 500
+
+@app.route('/')
+def index():
+    # Log a message
+    g.log.info('index_accessed', user_id=g.user.id if hasattr(g, 'user') else None)
+    return 'Hello, World!'
+\end{lstlisting}
+
+\subsection{Implementing Centralized Logging}
+
+For applications running on multiple servers, consider implementing centralized logging.
+
+\begin{lstlisting}[language=bash, caption=Installing ELK Stack]
+# Install Elasticsearch, Logstash, and Kibana
+# This is typically done using Docker or package managers
+\end{lstlisting}
+
+\begin{lstlisting}[language=python, caption=Implementing Centralized Logging with ELK]
+import logging
+import logstash
+from flask import Flask
+
+app = Flask(__name__)
+
+# Configure logging
+logger = logging.getLogger('flask_app')
+logger.setLevel(logging.INFO)
+
+# Add logstash handler
+logstash_handler = logstash.TCPLogstashHandler(
+    'logstash.example.com', 5000, version=1
+)
+logger.addHandler(logstash_handler)
+
+@app.route('/')
+def index():
+    # Log a message
+    logger.info('Index page accessed', extra={
+        'user_id': g.user.id if hasattr(g, 'user') else None,
+        'ip_address': request.remote_addr
+    })
+    return 'Hello, World!'
+\end{lstlisting}
+
+\section{Testing Enhancements}
+
+\subsection{Implementing Integration Tests}
+
+For more comprehensive testing, consider implementing integration tests.
+
+\begin{lstlisting}[language=python, caption=Implementing Integration Tests]
+import pytest
+from app import create_app, db
+from app.models.user import User
+
+@pytest.fixture
+def client():
+    app = create_app('testing')
+    with app.test_client() as client:
+        with app.app_context():
+            db.create_all()
+            yield client
+            db.drop_all()
+
+def test_register_and_login(client):
+    # Register a user
+    response = client.post('/auth/register', json={
+        'username': 'testuser',
+        'email': 'test@example.com',
+        'password': 'Test123!'
+    })
+    assert response.status_code == 201
+    
+    # Login with the registered user
+    response = client.post('/auth/login', json={
+        'username': 'testuser',
+        'password': 'Test123!'
+    })
+    assert response.status_code == 200
+    data = response.get_json()
+    assert 'access_token' in data
+    assert 'refresh_token' in data
+    
+    # Access a protected endpoint
+    response = client.get('/user/profile', headers={
+        'Authorization': f'Bearer {data["access_token"]}'
+    })
+    assert response.status_code == 200
+    profile = response.get_json()
+    assert profile['username'] == 'testuser'
+    assert profile['email'] == 'test@example.com'
+\end{lstlisting}
+
+\subsection{Implementing Load Tests}
+
+For applications with high traffic, consider implementing load tests.
+
+\begin{lstlisting}[language=bash, caption=Installing Locust]
+pip install locust
+\end{lstlisting}
+
+\begin{lstlisting}[language=python, caption=Implementing Load Tests with Locust]
+from locust import HttpUser, task, between
+
+class WebsiteUser(HttpUser):
+    wait_time = between(1, 5)
+    
+    def on_start(self):
+        # Login
+        response = self.client.post('/auth/login', json={
+            'username': 'testuser',
+            'password': 'Test123!'
+        })
+        data = response.json()
+        self.access_token = data['access_token']
+    
+    @task
+    def get_profile(self):
+        self.client.get('/user/profile', headers={
+            'Authorization': f'Bearer {self.access_token}'
+        })
+    
+    @task
+    def get_activities(self):
+        self.client.get('/user/activities', headers={
+            'Authorization': f'Bearer {self.access_token}'
+        })
+\end{lstlisting}
+
+\section{Deployment Enhancements}
+
+\subsection{Implementing Docker Containerization}
+
+For easier deployment and scaling, consider implementing Docker containerization.
+
+\begin{lstlisting}[language=dockerfile, caption=Dockerfile]
+FROM python:3.9-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+ENV FLASK_APP=run.py
+ENV FLASK_ENV=production
+
+EXPOSE 5000
+
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "run:app"]
+\end{lstlisting}
+
+\begin{lstlisting}[language=yaml, caption=docker-compose.yml]
+version: '3'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_APP=run.py
+      - FLASK_ENV=production
+      - DATABASE_URL=mysql://user:password@db/flask_app
+    depends_on:
+      - db
+      - redis
+  
+  db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=flask_app
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+    volumes:
+      - db_data:/var/lib/mysql
+  
+  redis:
+    image: redis:6.0
+    volumes:
+      - redis_data:/data
+
+volumes:
+  db_data:
+  redis_data:
+\end{lstlisting}
+
+\subsection{Implementing Kubernetes Deployment}
+
+For more advanced deployment and scaling, consider implementing Kubernetes deployment.
+
+\begin{lstlisting}[language=yaml, caption=kubernetes-deployment.yml]
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: flask-app
+  template:
+    metadata:
+      labels:
+        app: flask-app
+    spec:
+      containers:
+      - name: flask-app
+        image: flask-app:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: FLASK_APP
+          value: run.py
+        - name: FLASK_ENV
+          value: production
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: flask-app-secrets
+              key: database-url
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: "512Mi"
+          requests:
+            cpu: "0.2"
+            memory: "256Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+\end{lstlisting}
+
+\section{Monitoring Enhancements}
+
+\subsection{Implementing Application Monitoring}
+
+For better visibility into application performance, consider implementing application monitoring.
+
+\begin{lstlisting}[language=bash, caption=Installing Prometheus Client]
+pip install prometheus-client
+\end{lstlisting}
+
+\begin{lstlisting}[language=python, caption=Implementing Prometheus Monitoring]
+from flask import Flask
+from prometheus_client import Counter, Histogram, generate_latest
+import time
+
+app = Flask(__name__)
+
+# Define metrics
+REQUEST_COUNT = Counter('http_requests_total', 'Total HTTP Requests', ['method', 'endpoint', 'status'])
+REQUEST_LATENCY = Histogram('http_request_duration_seconds', 'HTTP Request Latency', ['method', 'endpoint'])
+
+@app.before_request
+def before_request():
+    request.start_time = time.time()
+
+@app.after_request
+def after_request(response):
+    request_latency = time.time() - request.start_time
+    REQUEST_COUNT.labels(request.method, request.path, response.status_code).inc()
+    REQUEST_LATENCY.labels(request.method, request.path).observe(request_latency)
+    return response
+
+@app.route('/metrics')
+def metrics():
+    return generate_latest()
+\end{lstlisting}
+
+\subsection{Implementing Error Tracking}
+
+For better error tracking and debugging, consider implementing error tracking.
+
+\begin{lstlisting}[language=bash, caption=Installing Sentry]
+pip install sentry-sdk[flask]
+\end{lstlisting}
+
+\begin{lstlisting}[language=python, caption=Implementing Sentry Error Tracking]
+import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
+from flask import Flask
+
+sentry_sdk.init(
+    dsn="https://your-sentry-dsn@sentry.io/1234567",
+    integrations=[FlaskIntegration()],
+    traces_sample_rate=1.0
+)
+
+app = Flask(__name__)
+
+@app.route('/error')
+def error():
+    # This will be captured by Sentry
+    raise Exception('This is a test error')
+\end{lstlisting}
+
+\section{Conclusion}
+
+This document has provided suggestions for extending the Flask MVC Template with MySQL. The suggestions cover various aspects of the application, including frontend enhancements, API enhancements, database enhancements, authentication enhancements, caching enhancements, logging enhancements, testing enhancements, deployment enhancements, and monitoring enhancements. These suggestions can be implemented based on the specific requirements of your application.
+
+\end{document}
+

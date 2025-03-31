@@ -1,0 +1,311 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{enumitem}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+
+\title{Flask MVC Template with MySQL - Setup Instructions}
+\author{Flask MVC Template Documentation}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+
+This document provides detailed instructions for setting up and using the Flask MVC Template with MySQL. This template follows the Model-View-Controller (MVC) architecture and includes features such as authentication, authorization, activity tracking, and more.
+
+\section{Prerequisites}
+
+Before you begin, ensure you have the following installed:
+
+\begin{itemize}
+    \item Python 3.8 or higher
+    \item MySQL 5.7 or higher
+    \item pip (Python package manager)
+    \item virtualenv (recommended)
+\end{itemize}
+
+\section{Installation}
+
+\subsection{Clone the Repository}
+
+First, clone the repository to your local machine:
+
+\begin{lstlisting}[language=bash]
+git clone https://github.com/yourusername/flask-mvc-template.git
+cd flask-mvc-template
+\end{lstlisting}
+
+\subsection{Create a Virtual Environment}
+
+It's recommended to use a virtual environment for Python projects:
+
+\begin{lstlisting}[language=bash]
+python -m venv venv
+\end{lstlisting}
+
+Activate the virtual environment:
+
+\begin{itemize}
+    \item On Windows:
+    \begin{lstlisting}[language=bash]
+venv\Scripts\activate
+    \end{lstlisting}
+    
+    \item On macOS and Linux:
+    \begin{lstlisting}[language=bash]
+source venv/bin/activate
+    \end{lstlisting}
+\end{itemize}
+
+\subsection{Install Dependencies}
+
+Install the required packages using pip:
+
+\begin{lstlisting}[language=bash]
+pip install -r requirements.txt
+\end{lstlisting}
+
+\subsection{Configure Environment Variables}
+
+Create a \texttt{.env} file in the root directory with the following variables:
+
+\begin{lstlisting}
+FLASK_APP=run.py
+FLASK_ENV=development
+SECRET_KEY=your-secret-key
+JWT_SECRET_KEY=your-jwt-secret-key
+DEV_DATABASE_URL=mysql://username:password@localhost/flask_app_dev
+TEST_DATABASE_URL=mysql://username:password@localhost/flask_app_test
+DATABASE_URL=mysql://username:password@localhost/flask_app_prod
+\end{lstlisting}
+
+Replace \texttt{username}, \texttt{password}, and database names with your MySQL credentials.
+
+\subsection{Create Databases}
+
+Create the necessary MySQL databases:
+
+\begin{lstlisting}[language=bash]
+mysql -u root -p
+\end{lstlisting}
+
+In the MySQL shell:
+
+\begin{lstlisting}[language=sql]
+CREATE DATABASE flask_app_dev;
+CREATE DATABASE flask_app_test;
+CREATE DATABASE flask_app_prod;
+\end{lstlisting}
+
+\subsection{Initialize the Database}
+
+Run the database migrations to create the tables:
+
+\begin{lstlisting}[language=bash]
+flask db init
+flask db migrate -m "Initial migration"
+flask db upgrade
+\end{lstlisting}
+
+\subsection{Seed the Database}
+
+Seed the database with initial data:
+
+\begin{lstlisting}[language=bash]
+python database/seed.py
+\end{lstlisting}
+
+This will create an admin user with the following credentials:
+\begin{itemize}
+    \item Username: admin
+    \item Email: admin@example.com
+    \item Password: Admin123!
+\end{itemize}
+
+\section{Running the Application}
+
+\subsection{Development Server}
+
+Start the development server:
+
+\begin{lstlisting}[language=bash]
+flask run
+\end{lstlisting}
+
+The application will be available at \url{http://localhost:5000}.
+
+\subsection{Production Deployment}
+
+For production deployment, it's recommended to use Gunicorn:
+
+\begin{lstlisting}[language=bash]
+gunicorn -w 4 -b 0.0.0.0:8000 run:app
+\end{lstlisting}
+
+\section{Project Structure}
+
+The project follows a structured MVC architecture:
+
+\begin{lstlisting}
+/project-root
+│
+├── /app
+│   ├── __init__.py              # Flask app factory
+│   ├── /controllers             # MVC Controllers
+│   │   ├── auth_controller.py
+│   │   ├── user_controller.py
+│   │   ├── admin_controller.py
+│   │   └── activity_controller.py
+│   │
+│   ├── /models                  # MVC Models
+│   │   ├── user.py
+│   │   ├── activity.py
+│   │   └── __init__.py
+│   │
+│   ├── /services                # Business logic layer
+│   │   ├── auth_service.py
+│   │   ├── session_service.py
+│   │   ├── token_service.py
+│   │   ├── cache_service.py
+│   │   ├── cookie_service.py
+│   │   └── authorization_service.py
+│   │
+│   ├── /repositories            # Data access layer
+│   │   ├── user_repository.py
+│   │   ├── activity_repository.py
+│   │   └── __init__.py
+│   │
+│   ├── /templates               # HTML views
+│   │   ├── auth
+│   │   │   ├── login.html
+│   │   │   └── register.html
+│   │   ├── user
+│   │   │   ├── home.html
+│   │   │   └── profile.html
+│   │   ├── admin
+│   │   │   ├── dashboard.html
+│   │   │   └── user_management.html
+│   │   └── layout.html
+│   │
+│   ├── /static                  # Static files
+│   ├── /utils                   # Helpers and utilities
+│   │   ├── decorators.py        # Custom decorators
+│   │   ├── validators.py        # Input validation
+│   │   └── security.py          # Security helpers
+│   │
+│   └── /config                  # Configuration
+│       ├── __init__.py
+│       ├── default.py
+│       ├── development.py
+│       ├── production.py
+│       └── testing.py
+│
+├── /database
+│   ├── /migrations             # Database migrations
+│   ├── db.py                   # Database connection handler
+│   └── seed.py                 # Initial data population
+│
+├── requirements.txt            # Python dependencies
+├── config.py                   # Main configuration
+├── run.py                      # Application entry point
+└── tests/                      # Test cases
+\end{lstlisting}
+
+\section{API Endpoints}
+
+The template includes the following API endpoints:
+
+\subsection{Authentication}
+
+\begin{itemize}
+    \item \textbf{POST /auth/register} - Register a new user
+    \item \textbf{POST /auth/login} - Login a user
+    \item \textbf{POST /auth/logout} - Logout a user
+    \item \textbf{POST /auth/refresh} - Refresh access token
+\end{itemize}
+
+\subsection{User}
+
+\begin{itemize}
+    \item \textbf{GET /user/profile} - Get current user profile
+    \item \textbf{PUT /user/profile} - Update current user profile
+    \item \textbf{PUT /user/password} - Change user password
+    \item \textbf{GET /user/activities} - Get user activities
+\end{itemize}
+
+\subsection{Admin}
+
+\begin{itemize}
+    \item \textbf{GET /admin/users} - Get all users
+    \item \textbf{GET /admin/users/<user\_id>} - Get user by ID
+    \item \textbf{POST /admin/users} - Create a new user
+    \item \textbf{PUT /admin/users/<user\_id>} - Update a user
+    \item \textbf{DELETE /admin/users/<user\_id>} - Delete a user
+    \item \textbf{PUT /admin/users/<user\_id>/activate} - Activate a user
+    \item \textbf{PUT /admin/users/<user\_id>/deactivate} - Deactivate a user
+\end{itemize}
+
+\subsection{Activity}
+
+\begin{itemize}
+    \item \textbf{GET /activity} - Get all activities (admin only)
+    \item \textbf{GET /activity/user/<user\_id>} - Get activities for a specific user (admin only)
+\end{itemize}
+
+\section{Authentication}
+
+The template uses JWT (JSON Web Tokens) for authentication. When a user logs in, they receive an access token and a refresh token. The access token is used to authenticate API requests, while the refresh token is used to obtain a new access token when the current one expires.
+
+\subsection{Using Authentication in API Requests}
+
+To authenticate API requests, include the access token in the Authorization header:
+
+\begin{lstlisting}[language=javascript]
+fetch('/user/profile', {
+    method: 'GET',
+    headers: {
+        'Authorization': `Bearer ${accessToken}`
+    }
+})
+\end{lstlisting}
+
+\section{Conclusion}
+
+This template provides a solid foundation for building Flask applications with MySQL following the MVC architecture. It includes features such as authentication, authorization, activity tracking, and more. Feel free to extend and customize it to fit your specific requirements.
+
+\end{document}
+

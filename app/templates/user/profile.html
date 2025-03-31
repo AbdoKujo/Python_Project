@@ -1,0 +1,232 @@
+{% extends "layout.html" %}
+
+{% block title %}User Profile{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <h1>User Profile</h1>
+    
+    <div id="error-message" class="error-message hidden"></div>
+    <div id="success-message" class="success-message hidden"></div>
+    
+    <div class="profile-section">
+        <h2>Profile Information</h2>
+        <form id="profile-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit">Update Profile</button>
+            </div>
+        </form>
+    </div>
+    
+    <div class="profile-section">
+        <h2>Change Password</h2>
+        <form id="password-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label for="current-password">Current Password</label>
+                <input type="password" id="current-password" name="current-password" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="new-password">New Password</label>
+                <input type="password" id="new-password" name="new-password" required>
+                <small>Password must be at least 8 characters and contain letters and numbers</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirm-password">Confirm New Password</label>
+                <input type="password" id="confirm-password" name="confirm-password" required>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit">Change Password</button>
+            </div>
+        </form>
+    </div>
+    
+    <div class="profile-section">
+        <h2>Recent Activity</h2>
+        <div id="activity-list" class="activity-list">
+            <p>Loading activities...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async function() {
+        const accessToken = localStorage.getItem('access_token');
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        
+        if (!accessToken) {
+            window.location.href = '/auth/login';
+            return;
+        }
+        
+        // Load user profile
+        try {
+            const response = await fetch('/user/profile', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'X-CSRFToken': csrfToken
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                // Fill profile form
+                document.getElementById('username').value = data.username;
+                document.getElementById('email').value = data.email;
+            } else {
+                // Handle error
+                const errorMessage = document.getElementById('error-message');
+                errorMessage.textContent = 'Failed to load profile';
+                errorMessage.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Error loading profile:', error);
+        }
+        
+        // Load user activities
+        try {
+            const response = await fetch('/user/activities', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'X-CSRFToken': csrfToken
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                const activityList = document.getElementById('activity-list');
+                
+                if (data.activities.length === 0) {
+                    activityList.innerHTML = '<p>No recent activities</p>';
+                } else {
+                    let html = '<ul>';
+                    data.activities.forEach(activity => {
+                        html += `<li>
+                            <strong>${activity.action}</strong>
+                            <span>${new Date(activity.timestamp).toLocaleString()}</span>
+                            ${activity.details ? `<p>${activity.details}</p>` : ''}
+                        </li>`;
+                    });
+                    html += '</ul>';
+                    activityList.innerHTML = html;
+                }
+            } else {
+                // Handle error
+                document.getElementById('activity-list').innerHTML = '<p>Failed to load activities</p>';
+            }
+        } catch (error) {
+            console.error('Error loading activities:', error);
+        }
+        
+        // Handle profile form submission
+        document.getElementById('profile-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            
+            try {
+                const response = await fetch('/user/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`,
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ username, email })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const successMessage = document.getElementById('success-message');
+                    successMessage.textContent = 'Profile updated successfully';
+                    successMessage.classList.remove('hidden');
+                    
+                    // Hide success message after 3 seconds
+                    setTimeout(() => {
+                        successMessage.classList.add('hidden');
+                    }, 3000);
+                } else {
+                    const errorMessage = document.getElementById('error-message');
+                    errorMessage.textContent = data.error || 'Failed to update profile';
+                    errorMessage.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error updating profile:', error);
+            }
+        });
+        
+        // Handle password form submission
+        document.getElementById('password-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            // Validate passwords match
+            if (newPassword !== confirmPassword) {
+                const errorMessage = document.getElementById('error-message');
+                errorMessage.textContent = 'New passwords do not match';
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/user/password', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`,
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const successMessage = document.getElementById('success-message');
+                    successMessage.textContent = 'Password changed successfully';
+                    successMessage.classList.remove('hidden');
+                    
+                    // Clear password form
+                    document.getElementById('current-password').value = '';
+                    document.getElementById('new-password').value = '';
+                    document.getElementById('confirm-password').value = '';
+                    
+                    // Hide success message after 3 seconds
+                    setTimeout(() => {
+                        successMessage.classList.add('hidden');
+                    }, 3000);
+                } else {
+                    const errorMessage = document.getElementById('error-message');
+                    errorMessage.textContent = data.error || 'Failed to change password';
+                    errorMessage.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error changing password:', error);
+            }
+        });
+    });
+</script>
+{% endblock %}
+

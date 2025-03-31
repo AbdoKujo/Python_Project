@@ -1,0 +1,80 @@
+{% extends "layout.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <h1>Login</h1>
+    
+    <div id="error-message" class="error-message hidden"></div>
+    
+    <form id="login-form" action="{{ url_for('auth.login') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+            <label for="username">Username or Email</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit">Login</button>
+        </div>
+    </form>
+    
+    <div class="auth-links">
+        <p>Don't have an account? <a href="/auth/register">Register</a></p>
+    </div>
+</div>
+
+<script>
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        
+        try {
+            const response = await fetch("{{ url_for('auth.login') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ username, password }),
+                credentials: 'include' // Important: include cookies in the request
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Store tokens in localStorage for client-side auth
+                localStorage.setItem('access_token', data.access_token);
+                localStorage.setItem('refresh_token', data.refresh_token);
+                
+                // Get the redirect URL from query params or default to home
+                const urlParams = new URLSearchParams(window.location.search);
+                const redirectUrl = urlParams.get('next') || '/';
+                
+                // Redirect to the appropriate page
+                window.location.href = redirectUrl;
+            } else {
+                // Show error message
+                const errorMessage = document.getElementById('error-message');
+                errorMessage.textContent = data.error || 'Login failed';
+                errorMessage.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            const errorMessage = document.getElementById('error-message');
+            errorMessage.textContent = 'An error occurred. Please try again.';
+            errorMessage.classList.remove('hidden');
+        }
+    });
+</script>
+{% endblock %}
+
